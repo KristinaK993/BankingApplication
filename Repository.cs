@@ -1,57 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using BankingApplication;
 using Newtonsoft.Json;
 
-public class Repository<T> : IRepository<T>
+public class Repository<T> where T : class
 {
-    private List<T> items = new ();
-    private readonly string filePath;
+    private List<T> items;
+    private string filePath;
 
+    // Konstruktor som accepterar en filväg
     public Repository(string filePath)
     {
         this.filePath = filePath;
-        LoadData();
+        items = LoadData();
     }
-    public void Add(T item)
+
+    // Ladda data från JSON
+    private List<T> LoadData()
+    {
+        if (File.Exists(filePath))
+        {
+            var jsonData = File.ReadAllText(filePath);
+            return JsonConvert.DeserializeObject<List<T>>(jsonData) ?? new List<T>();
+        }
+        return new List<T>();
+    }
+
+    // Spara data till JSON
+    public void SaveData()
+    {
+        var jsonData = JsonConvert.SerializeObject(items, Formatting.Indented);
+        File.WriteAllText(filePath, jsonData);
+    }
+
+    // Hämta ett objekt baserat på ett AccountNumber
+    public T GetAccountByNumber(string accountNumber)
+    {
+        return items.OfType<BankAccount>().FirstOrDefault(acc => acc.AccountNumber == accountNumber) as T;
+    }
+
+    // Lägg till ett nytt objekt i listan
+    public void AddItem(T item)
     {
         items.Add(item);
         SaveData();
     }
-    public T GetAccountByNumber(string accountNumber)
+
+    // Ta bort ett objekt
+    public void RemoveItem(T item)
     {
-        return items.OfType<BankAccount>()
-            .FirstOrDefault(acc => acc.AccountNumber == accountNumber) as T;
+        items.Remove(item);
+        SaveData();
     }
-    public void SaveData()
-    {
-        try
-        {
-            File.WriteAllText(filePath, JsonConvert.SerializeObject(items, Formatting.Indented));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving data: {ex.Message}");
-        }
-    }
-    public void LoadData()
-    {
-        try
-        {
-            if (File.Exists(filePath))
-            {
-                items = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(filePath)) ?? new List<T>();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading data: {ex.Message}");
-        }
-    }
+
+    // Hämta alla objekt
     public List<T> GetAll()
     {
         return items;
     }
 }
+
