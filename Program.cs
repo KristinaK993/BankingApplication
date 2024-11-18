@@ -1,82 +1,115 @@
-﻿using BankingApplication;
-using Figgle;
+﻿using System;
+using BankingApplication;
 using Spectre.Console;
-class Program
+
+public class Program
 {
-    private static Repository<BankAccount> bankRepo = new("data.json");
-    static void Main(string[] args)
+    public static void Main(string[] args)
     {
-        AnsiConsole.MarkupLine($"[bold green]{FiggleFonts.Slant.Render("Kristinas Bank")}[/]");
-        bankRepo.LoadData();
+        // Skapa repository för BankAccount
+        var bankRepo = new Repository<BankAccount>("data.json");
 
-        while (true)
+        // Visa en välkomstlogga och logga in
+        ShowWelcomeMessage();
+        var loggedIn = false;
+        BankAccount currentAccount = null;
+
+        while (!loggedIn)
         {
-            ShowLogIn();
+            Console.Write("Enter your account number to login: ");
+            string accountNumber = Console.ReadLine();
+
+            loggedIn = Login(bankRepo, accountNumber, out currentAccount);
+
+            if (!loggedIn)
+            {
+                AnsiConsole.MarkupLine("[red]Login failed. Try again.[/]");
+            }
         }
+
+        // Om inloggningen lyckades, visa konto-menyn
+        ShowAccountMenu(currentAccount, bankRepo);
     }
-    private static void ShowLogIn()
+
+    // Visa välkomstlogga
+    private static void ShowWelcomeMessage()
     {
-        Console.Clear();
-        AnsiConsole.MarkupLine("[bold blue] Welcome To Kristinas BankApp[/]");
-        Console.Write("Enter account number: ");
-        string accountNumber = Console.ReadLine();
-
-        Console.Write("Enter PIN Code: ");
-        string pinCode = Console.ReadLine();
-
-        var account = bankRepo.GetAccountByNumber(accountNumber);
-
-        if (account != null && account.PinCode == pinCode)
-        {
-            ShowMainMenu(account);
-        }
-        else
-        {
-            AnsiConsole.MarkupLine("[red]Invalid account number or PIN. Please try again.[/]");
-        }
+        AnsiConsole.MarkupLine("[bold green]Welcome to Kristina's Bank App![/]");
+        AnsiConsole.MarkupLine("[yellow]Please log in with your account number and PIN code.[/]");
     }
-    private static void ShowMainMenu(BankAccount account)
-    {
-        while (true)
-        {
-            Console.Clear();
-            var choice = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
-                    .Title("[bold green]Select an option:[/]")
-                    .AddChoices("1. View Balance", "2. Deposit", "3. Withdraw", "4. Transaction History", "5. Transfer", "6. Logout"));
 
+    // Login-funktion
+    private static bool Login(Repository<BankAccount> bankRepo, string accountNumber, out BankAccount account)
+    {
+        account = bankRepo.GetAccountByNumber(accountNumber);
+        if (account == null)
+        {
+            return false;  // Konto hittades inte
+        }
+
+        Console.Write("Enter your PIN code: ");
+        string enteredPin = Console.ReadLine();
+
+        // Validera PIN-koden
+        return account.ValidatePin(enteredPin);
+    }
+
+    // Konto-menyn
+    private static void ShowAccountMenu(BankAccount account, Repository<BankAccount> bankRepo)
+    {
+        bool continueUsingAccount = true;
+
+        while (continueUsingAccount)
+        {
+            AnsiConsole.Clear();
+            AnsiConsole.MarkupLine($"[bold green]Welcome, {account.HolderName}![/]");
+            AnsiConsole.MarkupLine("[yellow]Select an option:[/]");
+            AnsiConsole.MarkupLine("1. View Balance");
+            AnsiConsole.MarkupLine("2. Deposit Money");
+            AnsiConsole.MarkupLine("3. Withdraw Money");
+            AnsiConsole.MarkupLine("4. View Transaction History");
+            AnsiConsole.MarkupLine("5. Transfer to Another Account");
+            AnsiConsole.MarkupLine("6. Log Out");
+
+            string choice = Console.ReadLine();
             switch (choice)
             {
-                case "1. View Balance":
-                    AnsiConsole.MarkupLine($"[yellow]Your balance: {account.Balance:C}[/]");
+                case "1":
+                    ViewBalance(account);
                     break;
-
-                case "2. Deposit":
-                    PerformDeposit(account);
+                case "2":
+                    DepositMoney(account, bankRepo);
                     break;
-
-                case "3. Withdraw":
-                    PerformWithdraw(account);
+                case "3":
+                    WithdrawMoney(account, bankRepo);
                     break;
-
-                case "4. Transaction History":
-                    ShowTransactionHistory(account);
+                case "4":
+                    ViewTransactionHistory(account);
                     break;
-
-                case "5. Transfer":
-                    PerformTransfer(account);
+                case "5":
+                    TransferMoney(account, bankRepo);
                     break;
-
-                case "6. Logout":
-                    return;
-
+                case "6":
+                    continueUsingAccount = false;
+                    break;
+                default:
+                    AnsiConsole.MarkupLine("[red]Invalid choice! Try again.[/]");
+                    break;
             }
-            AnsiConsole.MarkupLine("[blue]Press any key to continue...[/]");
-            Console.ReadKey();
         }
 
+        // Logga ut
+        AnsiConsole.MarkupLine("[green]You have logged out successfully.[/]");
     }
-    private static void PerformDeposit(BankAccount account)
+
+    // Visa saldo
+    private static void ViewBalance(BankAccount account)
+    {
+        AnsiConsole.MarkupLine($"[bold yellow]Account Balance: {account.Balance:C}[/]");
+    }
+
+    // Insättning
+    private static void DepositMoney(BankAccount account, Repository<BankAccount> bankRepo)
     {
         Console.Write("Enter amount to deposit: ");
         if (decimal.TryParse(Console.ReadLine(), out decimal amount))
@@ -87,10 +120,12 @@ class Program
         }
         else
         {
-            AnsiConsole.MarkupLine("[red]Invalid amount.[/]");
+            AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");
         }
     }
-    private static void PerformWithdraw(BankAccount account)
+
+    // Uttag
+    private static void WithdrawMoney(BankAccount account, Repository<BankAccount> bankRepo)
     {
         Console.Write("Enter amount to withdraw: ");
         if (decimal.TryParse(Console.ReadLine(), out decimal amount))
@@ -101,17 +136,19 @@ class Program
                 bankRepo.SaveData();
                 AnsiConsole.MarkupLine("[green]Withdrawal successful![/]");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
             }
         }
         else
         {
-            AnsiConsole.MarkupLine("[red]Invalid amount.[/]");
+            AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");
         }
     }
-    private static void ShowTransactionHistory(BankAccount account)
+
+    // Visa transaktionshistorik
+    private static void ViewTransactionHistory(BankAccount account)
     {
         AnsiConsole.MarkupLine("[bold yellow]Transaction History:[/]");
         foreach (var transaction in account.TransactionHistory)
@@ -119,35 +156,71 @@ class Program
             AnsiConsole.MarkupLine($"[blue]{transaction}[/]");
         }
     }
-    private static void PerformTransfer(BankAccount account)
+
+    // Överföring mellan konton
+    private static void TransferMoney(BankAccount account, Repository<BankAccount> bankRepo)
     {
         Console.Write("Enter recipient account number: ");
-        string recipientNumber = Console.ReadLine();
+        string recipientAccountNumber = Console.ReadLine();
+        var recipientAccount = bankRepo.GetAccountByNumber(recipientAccountNumber);
 
-        Console.Write("Enter amount to transfer: ");
-        if(decimal.TryParse(Console.ReadLine(),out decimal amount))
+        if (recipientAccount != null)
         {
-            var recipient = bankRepo.GetAccountByNumber(recipientNumber);
-            if (recipient != null)
+            Console.Write("Enter amount to transfer: ");
+            if (decimal.TryParse(Console.ReadLine(), out decimal amount))
             {
                 try
                 {
                     account.Withdraw(amount);
-                    recipient.Deposit(amount);
+                    recipientAccount.Deposit(amount);
                     bankRepo.SaveData();
                     AnsiConsole.MarkupLine("[green]Transfer successful![/]");
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
                 }
             }
             else
             {
-                AnsiConsole.MarkupLine("[red]Invalid amount.[/]");
+                AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");
             }
+        }
+        else
+        {
+            AnsiConsole.MarkupLine("[red]Recipient account not found![/]");
         }
     }
 
+    // Skapa konto
+    private static void CreateAccount(Repository<BankAccount> bankRepo)
+    {
+        Console.Write("Enter account holder name: ");
+        string holderName = Console.ReadLine();
+
+        Console.Write("Enter initial balance: ");
+        decimal initialBalance;
+        if (!decimal.TryParse(Console.ReadLine(), out initialBalance))
+        {
+            AnsiConsole.MarkupLine("[red]Invalid amount![/]");
+            return;
+        }
+
+        Console.Write("Enter a 4-digit PIN code: ");
+        string pinCode = Console.ReadLine();
+        if (pinCode.Length != 4 || !int.TryParse(pinCode, out _))
+        {
+            AnsiConsole.MarkupLine("[red]Invalid PIN code! Please enter a 4-digit number.[/]");
+            return;
+        }
+
+        string accountNumber = Guid.NewGuid().ToString().Substring(0, 8);  // Skapa ett unikt konto nummer
+        var newAccount = new BankAccount(accountNumber, holderName, initialBalance, pinCode);
+
+        // Lägg till kontot i repository
+        bankRepo.AddItem(newAccount);
+
+        AnsiConsole.MarkupLine("[green]Account created and saved successfully![/]");
+    }
 }
 

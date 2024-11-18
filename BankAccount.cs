@@ -17,6 +17,7 @@ namespace BankingApplication
             HolderName = holderName;
             Balance = balance;
             PinCode = pinCode;
+            TransactionHistory = new List<string>();
 
         }
         public void Deposit (decimal amount)
@@ -32,6 +33,11 @@ namespace BankingApplication
             }
             Balance -= amount;
             TransactionHistory.Add($"Whithdrew: {amount:C}");
+        }
+        // Kontrollera pinkod vid inloggning
+        public bool ValidatePin(string pin)
+        {
+            return PinCode == pin;
         }
     }
 }
