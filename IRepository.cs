@@ -4,7 +4,8 @@ public interface IRepository<T>
 {
     void Add(T item);
     T GetAccountByNumber(string accountNumber);
+    T GetUserByUserName(string userName);
     void SaveData();
-    void LoadData();
+   List<T> LoadData();
     List<T> GetAll();
 }
