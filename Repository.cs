@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using BankingApplication;
+using System.Linq;
 using Newtonsoft.Json;
 
-public class Repository<T> where T : class
+public class Repository<T> : IRepository<T> where T : class
 {
     private List<T> items;
-    private string filePath;
+    private readonly string filePath;
 
-    // Konstruktor som accepterar en filväg
     public Repository(string filePath)
     {
         this.filePath = filePath;
@@ -17,10 +16,11 @@ public class Repository<T> where T : class
     }
 
     // Ladda data från JSON
-    private List<T> LoadData()
+    public List<T> LoadData()
     {
         if (File.Exists(filePath))
         {
+            Console.WriteLine($"Loading data from {filePath}");
             var jsonData = File.ReadAllText(filePath);
             return JsonConvert.DeserializeObject<List<T>>(jsonData) ?? new List<T>();
         }
@@ -34,23 +34,10 @@ public class Repository<T> where T : class
         File.WriteAllText(filePath, jsonData);
     }
 
-    // Hämta ett objekt baserat på ett AccountNumber
-    public T GetAccountByNumber(string accountNumber)
-    {
-        return items.OfType<BankAccount>().FirstOrDefault(acc => acc.AccountNumber == accountNumber) as T;
-    }
-
-    // Lägg till ett nytt objekt i listan
-    public void AddItem(T item)
+    // Lägg till ett nytt objekt
+    public void Add(T item)
     {
         items.Add(item);
-        SaveData();
-    }
-
-    // Ta bort ett objekt
-    public void RemoveItem(T item)
-    {
-        items.Remove(item);
         SaveData();
     }
 
@@ -59,5 +46,30 @@ public class Repository<T> where T : class
     {
         return items;
     }
+
+    // Hämta ett objekt baserat på AccountNumber
+    public T GetAccountByNumber(string accountNumber)
+    {
+        if (typeof(T) == typeof(BankAccount))
+        {
+            return items.OfType<BankAccount>()
+                        .FirstOrDefault(acc => acc.AccountNumber == accountNumber) as T;
+        }
+
+        throw new InvalidOperationException($"The type {typeof(T).Name} does not support this operation.");
+    }
+
+    // Hämta en användare baserat på UserName (endast om T är BankUser)
+    public T GetUserByUserName(string userName)
+    {
+        if (typeof(T) == typeof(BankUser))
+        {
+            return items.OfType<BankUser>()
+                        .FirstOrDefault(user => user.UserName == userName) as T;
+        }
+
+        throw new InvalidOperationException($"The type {typeof(T).Name} does not support this operation.");
+    }
 }
+
 

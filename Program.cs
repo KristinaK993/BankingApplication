@@ -1,13 +1,12 @@
 ﻿using System;
-using BankingApplication;
 using Spectre.Console;
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        // Skapa repository för BankAccount
-        var bankRepo = new Repository<BankAccount>("data.json");
+        var bankRepo = new Repository<BankAccount>(@"C:\Path\To\data.json");
+        string filePath = @"C:\Path\To\data.json";
 
         // Visa en välkomstlogga och logga in
         ShowWelcomeMessage();
@@ -62,7 +61,7 @@ public class Program
         while (continueUsingAccount)
         {
             AnsiConsole.Clear();
-            AnsiConsole.MarkupLine($"[bold green]Welcome, {account.HolderName}![/]");
+            AnsiConsole.MarkupLine($"[bold green]Welcome, {account.UserName}![/]");
             AnsiConsole.MarkupLine("[yellow]Select an option:[/]");
             AnsiConsole.MarkupLine("1. View Balance");
             AnsiConsole.MarkupLine("2. Deposit Money");
@@ -218,7 +217,7 @@ public class Program
         var newAccount = new BankAccount(accountNumber, holderName, initialBalance, pinCode);
 
         // Lägg till kontot i repository
-        bankRepo.AddItem(newAccount);
+        bankRepo.Add(newAccount);
 
         AnsiConsole.MarkupLine("[green]Account created and saved successfully![/]");
     }

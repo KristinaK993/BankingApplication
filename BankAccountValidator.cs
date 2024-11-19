@@ -1,5 +1,4 @@
-﻿using BankingApplication;
-using FluentValidation;
+﻿using FluentValidation;
 
 public class BankAccountValidator : AbstractValidator<BankAccount>
 {
@@ -9,7 +8,7 @@ public class BankAccountValidator : AbstractValidator<BankAccount>
             .NotEmpty().WithMessage("Account number cannot be empty.")
             .Length(8).WithMessage("Account number must be 8 characters long.");
 
-        RuleFor(account => account.HolderName)
+        RuleFor(account => account.UserName)
             .NotEmpty().WithMessage("Holder name cannot be empty.")
             .MaximumLength(50).WithMessage("Holder name must not exceed 50 characters.");
 
