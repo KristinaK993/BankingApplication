@@ -107,7 +107,6 @@ public class Program
             AnsiConsole.MarkupLine("6. Save Changes");
             AnsiConsole.MarkupLine("7. Log Out");
 
-            // Läs användarens val
             string choice = Console.ReadLine();
 
             // Hantera valet
@@ -115,22 +114,28 @@ public class Program
             {
                 case "1":
                     ViewBalance(account);
+                    PauseBeforeReturning(); // Pausa innan återgång
                     break;
                 case "2":
                     DepositMoney(account, userRepo);
+                    PauseBeforeReturning();
                     break;
                 case "3":
                     WithdrawMoney(account, userRepo);
+                    PauseBeforeReturning();
                     break;
                 case "4":
                     ViewTransactionHistory(account);
+                    PauseBeforeReturning();
                     break;
                 case "5":
                     TransferMoney(account, userRepo);
+                    PauseBeforeReturning();
                     break;
                 case "6":
                     SaveChanges(userRepo);
                     AnsiConsole.MarkupLine("[green]Changes saved successfully![/]");
+                    PauseBeforeReturning();
                     break;
                 case "7":
                     Console.Write("Do you want to save changes before logging out? (yes/no): ");
@@ -141,14 +146,22 @@ public class Program
                         AnsiConsole.MarkupLine("[green]Changes saved successfully![/]");
                     }
                     AnsiConsole.MarkupLine("[green]You have logged out successfully, Bye![/]");
-                    return; // Avsluta menyn
+                    return;
                 default:
                     AnsiConsole.MarkupLine("[red]Invalid choice! Please try again.[/]");
+                    PauseBeforeReturning();
                     break;
             }
-
         }
     }
+
+    // Pausfunktion för att ge användaren tid att läsa resultatet
+    private static void PauseBeforeReturning()
+    {
+        AnsiConsole.MarkupLine("[grey]Press any key to return to the menu...[/]");
+        Console.ReadKey(true); // Väntar på valfri tangent utan att visa den i konsolen
+    }
+
 
 
     // Visa saldo
