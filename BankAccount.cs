@@ -1,10 +1,9 @@
-﻿public class BankAccount : BankUser
+﻿public class BankAccount
 {
     public string AccountNumber { get; set; }
     public string AccountType { get; set; } // Savings/Personal
     public decimal Balance { get; set; }
-    public List<string> TransactionHistory { get; set; }
-    
+    public List<string> TransactionHistory { get; private set; }
 
     public BankAccount(string accountNumber, string accountType, decimal initialBalance, string pinCode)
     {
@@ -14,39 +13,36 @@
         TransactionHistory = new List<string>();
     }
 
-    public void Deposit(decimal amount) //insättning
-    {
-        {
-            if (amount <= 0)
-                throw new ArgumentException("Deposit amount must be positive.");
-            Balance += amount;
-            TransactionHistory.Add($"Deposited {amount:C} on {DateTime.Now}");
-        }
-    }
-    public bool ValidatePin(string enteredPin)
-    {
-        return PinCode == enteredPin;
-    }
-
-    public void Withdraw(decimal amount) //Uttag
+    public void Deposit(decimal amount)
     {
         if (amount <= 0)
+        {
+            throw new ArgumentException("Deposit amount must be positive.");
+        }
+
+        Balance += amount;
+        string transaction = $"Deposited {amount:C} on {DateTime.Now}";
+        TransactionHistory.Add(transaction); // Lägg till transaktion
+    }
+
+    public void Withdraw(decimal amount)
+    {
+        if (amount <= 0)
+        {
             throw new ArgumentException("Withdrawal amount must be positive.");
+        }
+
         if (amount > Balance)
+        {
             throw new InvalidOperationException("Insufficient balance.");
+        }
+
         Balance -= amount;
         TransactionHistory.Add($"Withdrew {amount:C} on {DateTime.Now}");
     }
-   
-    public string GetBalance() // Visa saldo
+
+    public override string ToString()
     {
-        return $"{Balance:C}";
-    }
-  
-    public string GetTransactionHistory() // Visa transaktionshistorik
-    {
-        if (TransactionHistory.Count == 0)
-            return "No transactions available.";
-        return string.Join(Environment.NewLine, TransactionHistory);
+        return $"Account: {AccountNumber}, Type: {AccountType}, Balance: {Balance:C}";
     }
 }
