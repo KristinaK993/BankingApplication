@@ -20,9 +20,9 @@ public class Repository<T> : IRepository<T> where T : class
     {
         if (File.Exists(filePath))
         {
-            Console.WriteLine($"Loading data from {filePath}");
-            var jsonData = File.ReadAllText(filePath);
-            return JsonConvert.DeserializeObject<List<T>>(jsonData) ?? new List<T>();
+      
+            var accountsJson = File.ReadAllText(filePath);
+            return JsonConvert.DeserializeObject<List<T>>(accountsJson) ?? new List<T>();
         }
         return new List<T>();
     }
@@ -30,8 +30,8 @@ public class Repository<T> : IRepository<T> where T : class
     // Spara data till JSON
     public void SaveData()
     {
-        var jsonData = JsonConvert.SerializeObject(items, Formatting.Indented);
-        File.WriteAllText(filePath, jsonData);
+        var accountsJson = JsonConvert.SerializeObject(items, Formatting.Indented);
+        File.WriteAllText(filePath, accountsJson);
     }
 
     // Lägg till ett nytt objekt
@@ -59,7 +59,7 @@ public class Repository<T> : IRepository<T> where T : class
         throw new InvalidOperationException($"The type {typeof(T).Name} does not support this operation.");
     }
 
-    // Hämta en användare baserat på UserName (endast om T är BankUser)
+    // Hämta en användare baserat på UserName 
     public T GetUserByUserName(string userName)
     {
         if (typeof(T) == typeof(BankUser))
