@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using Figgle;
 
 public class Program
 {
@@ -19,7 +20,7 @@ public class Program
 
             if (Login(userRepo, userName, out currentAccount))
             {
-                ShowAccountMenu(currentAccount, userRepo); // Skicka currentAccount här
+                ShowAccountMenu(currentAccount, userRepo);
                 break; // Avsluta huvudloopen efter att kontomenyn har avslutats
             }
             else
@@ -29,11 +30,26 @@ public class Program
         }
     }
 
-    // Välkomstmeddelande
     public static void ShowWelcomeMessage()
     {
-        AnsiConsole.MarkupLine("[bold green]Welcome to the Bank Application![/]");
-        AnsiConsole.MarkupLine("Please login to proceed.");
+        
+        var figgleText = FiggleFonts.Slant.Render("Bank Application");
+
+       
+        AnsiConsole.Write(
+            new Panel(figgleText)
+                .Border(BoxBorder.Double)
+                .BorderStyle(new Style(foreground: Color.Green))
+                .Header("[bold yellow]Welcome[/]")
+                .HeaderAlignment(Justify.Center)
+                .Expand() // Expandera panelen så att den fyller hela terminalens bredd
+        );
+
+        AnsiConsole.Write(
+            new Rule("[yellow]Please log in to proceed[/]")
+                .RuleStyle(new Style(foreground: Color.Blue))
+                .Centered()
+        );
     }
 
     // Inloggning
@@ -66,23 +82,22 @@ public class Program
 
         // Visa konton för att välja
         AnsiConsole.MarkupLine("[green]Login successful![/]");
-        Console.WriteLine("Select an account:");
+        var accountChoices = user.Accounts
+            .Select((account, index) => $"{index + 1}. {account.AccountType} - {account.AccountNumber}")
+            .ToList();
 
-        for (int i = 0; i < user.Accounts.Count; i++)
-        {
-            Console.WriteLine($"{i + 1}. {user.Accounts[i]}");
-        }
+        var selectedAccountChoice = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("[yellow]Select an account:[/]")
+                .PageSize(5)
+                .AddChoices(accountChoices)
+        );
 
-        Console.Write("Enter the number of the account you want to access: ");
-        if (int.TryParse(Console.ReadLine(), out int accountChoice) &&
-            accountChoice > 0 && accountChoice <= user.Accounts.Count)
-        {
-            selectedAccount = user.Accounts[accountChoice - 1];
-            return true;
-        }
+        // Matcha valt konto
+        int selectedIndex = accountChoices.IndexOf(selectedAccountChoice);
+        selectedAccount = user.Accounts[selectedIndex];
 
-        AnsiConsole.MarkupLine("[red]Invalid account selection.[/]");
-        return false;
+        return true;
     }
 
     // Konto-menyn
@@ -96,48 +111,57 @@ public class Program
 
         while (true)
         {
-            AnsiConsole.Clear();
+            AnsiConsole.Clear(); // Rensar konsolen för en ren vy
             AnsiConsole.MarkupLine($"[bold green]Welcome, {account.AccountNumber}![/]");
-            AnsiConsole.MarkupLine("[yellow]Select an option:[/]");
-            AnsiConsole.MarkupLine("1. View Balance");
-            AnsiConsole.MarkupLine("2. Deposit Money");
-            AnsiConsole.MarkupLine("3. Withdraw Money");
-            AnsiConsole.MarkupLine("4. View Transaction History");
-            AnsiConsole.MarkupLine("5. Transfer Money To Another Account");
-            AnsiConsole.MarkupLine("6. Save Changes");
-            AnsiConsole.MarkupLine("7. Log Out");
+            AnsiConsole.MarkupLine($"[yellow]Account Type: {account.AccountType}[/]");
+            AnsiConsole.MarkupLine($"[cyan]Balance: {account.Balance:C}[/]\n");
 
-            string choice = Console.ReadLine();
+            // Meny med Spectre.Console
+            var menuOption = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("[yellow]Select an option:[/]")
+                    .PageSize(7)
+                    .AddChoices(new[]
+                    {
+                        "View Balance",
+                        "Deposit Money",
+                        "Withdraw Money",
+                        "View Transaction History",
+                        "Transfer Money",
+                        "Save Changes",
+                        "Log Out"
+                    })
+            );
 
-            // Hantera valet
-            switch (choice)
+            // Hantera menyval
+            switch (menuOption)
             {
-                case "1":
+                case "View Balance":
                     ViewBalance(account);
-                    PauseBeforeReturning(); // Pausa innan återgång
+                    PauseBeforeReturning();
                     break;
-                case "2":
+                case "Deposit Money":
                     DepositMoney(account, userRepo);
                     PauseBeforeReturning();
                     break;
-                case "3":
+                case "Withdraw Money":
                     WithdrawMoney(account, userRepo);
                     PauseBeforeReturning();
                     break;
-                case "4":
+                case "View Transaction History":
                     ViewTransactionHistory(account);
                     PauseBeforeReturning();
                     break;
-                case "5":
+                case "Transfer Money":
                     TransferMoney(account, userRepo);
                     PauseBeforeReturning();
                     break;
-                case "6":
+                case "Save Changes":
                     SaveChanges(userRepo);
                     AnsiConsole.MarkupLine("[green]Changes saved successfully![/]");
                     PauseBeforeReturning();
                     break;
-                case "7":
+                case "Log Out":
                     Console.Write("Do you want to save changes before logging out? (yes/no): ");
                     string saveChoice = Console.ReadLine()?.Trim().ToLower();
                     if (saveChoice == "yes" || saveChoice == "y")
@@ -162,8 +186,6 @@ public class Program
         Console.ReadKey(true); // Väntar på valfri tangent utan att visa den i konsolen
     }
 
-
-
     // Visa saldo
     private static void ViewBalance(BankAccount account)
     {
@@ -183,7 +205,7 @@ public class Program
                     account.Deposit(amount);
                     userRepo.SaveData();
                     AnsiConsole.MarkupLine("[green]Deposit successful![/]");
-                    break; // Avsluta loopen efter en lyckad insättning
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -197,7 +219,6 @@ public class Program
         }
     }
 
-
     // Uttag
     private static void WithdrawMoney(BankAccount account, Repository<BankUser> userRepo)
     {
@@ -206,30 +227,21 @@ public class Program
         {
             try
             {
-                // göra ett uttag
                 account.Withdraw(amount);
-
-                // Logga transaktionen
                 account.TransactionHistory.Add($"Withdrew {amount:C} on {DateTime.Now}");
-
-                // Spara ändringarna i JSON-filen
                 userRepo.SaveData();
-
                 AnsiConsole.MarkupLine("[green]Withdrawal successful![/]");
             }
             catch (Exception ex)
             {
-                // Hantera eventuella fel, t.ex. otillräckligt saldo
                 AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
             }
         }
         else
         {
-            // Hantera ogiltig inmatning
             AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");
         }
     }
-
 
     // Visa transaktionshistorik
     private static void ViewTransactionHistory(BankAccount account)
@@ -247,10 +259,7 @@ public class Program
         Console.Write("Enter recipient account number: ");
         string recipientAccountNumber = Console.ReadLine();
 
-        // Hämta alla användare från repositoriet
         var allUsers = userRepo.GetAll();
-
-        // Leta efter mottagarkontot
         var recipientAccount = allUsers
             .SelectMany(user => user.Accounts)
             .FirstOrDefault(acc => acc.AccountNumber == recipientAccountNumber);
@@ -262,30 +271,21 @@ public class Program
             {
                 try
                 {
-                    // Gör uttag från avsändarens konto
                     account.Withdraw(amount);
-
-                    // Sätt in pengar på mottagarens konto
                     recipientAccount.Deposit(amount);
-
-                    // Logga transaktionerna
                     account.TransactionHistory.Add($"Transferred {amount:C} to {recipientAccount.AccountNumber} on {DateTime.Now}");
                     recipientAccount.TransactionHistory.Add($"Received {amount:C} from {account.AccountNumber} on {DateTime.Now}");
-
-                    // Spara ändringarna i JSON-filen
                     userRepo.SaveData();
-
                     AnsiConsole.MarkupLine("[green]Transfer successful![/]");
                 }
                 catch (Exception ex)
                 {
-                    // Hantera eventuella fel, t.ex. otillräckligt saldo
                     AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
                 }
             }
             else
             {
-                AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");// Hantera ogiltig inmatning
+                AnsiConsole.MarkupLine("[red]Invalid amount! Please try again.[/]");
             }
         }
         else
@@ -294,53 +294,7 @@ public class Program
         }
     }
 
-
-    // Skapa konto
-    private static void CreateAccount(Repository<BankUser> userRepo)
-    {
-        Console.Write("Enter account holder name: ");
-        string userName = Console.ReadLine();
-
-        // Hämta användaren från userRepo
-        var user = userRepo.GetAll().FirstOrDefault(u => u.UserName == userName);
-        if (user == null)
-        {
-            AnsiConsole.MarkupLine("[red]User not found![/]");
-            return;
-        }
-
-        Console.Write("Enter initial balance: ");
-        if (!decimal.TryParse(Console.ReadLine(), out decimal initialBalance))
-        {
-            AnsiConsole.MarkupLine("[red]Invalid initial balance![/]");
-            return;
-        }
-
-        Console.Write("Enter a 4-digit PIN code: ");
-        string pinCode = Console.ReadLine();
-        if (pinCode.Length != 4 || !int.TryParse(pinCode, out _))
-        {
-            AnsiConsole.MarkupLine("[red]Invalid PIN code! Please enter a 4-digit number.[/]");
-            return;
-        }
-
-        Console.Write("Enter account type (e.g., Savings or Personal): ");
-        string accountType = Console.ReadLine();
-
-        // Skapa ett unikt kontonummer
-        string accountNumber = Guid.NewGuid().ToString().Substring(0, 8); // Unikt kontonummer
-
-        // Skapa det nya kontot
-        var newAccount = new BankAccount(accountNumber, accountType, initialBalance, pinCode);
-
-        // Lägg till kontot till användaren
-        user.AddAccount(newAccount);
-
-        // Spara ändringarna
-        userRepo.SaveData();
-
-        AnsiConsole.MarkupLine($"[green]Account created successfully! Account Number: {newAccount.AccountNumber}[/]");
-    }
+    // Spara ändringar
     private static void SaveChanges(Repository<BankUser> userRepo)
     {
         try
@@ -353,6 +307,4 @@ public class Program
             AnsiConsole.MarkupLine($"[red]Failed to save changes: {ex.Message}[/]");
         }
     }
-
-
 }
